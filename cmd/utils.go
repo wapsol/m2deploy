@@ -1,60 +1,44 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/wapsol/m2deploy/pkg/config"
-	"github.com/wapsol/m2deploy/pkg/git"
+	"github.com/wapsol/m2deploy/pkg/constants"
 )
 
 // getComponents parses component string and returns list of components
 func getComponents(component string) []string {
 	switch component {
-	case ComponentBackend:
-		return []string{ComponentBackend}
-	case ComponentFrontend:
-		return []string{ComponentFrontend}
-	case ComponentBoth:
-		return []string{ComponentBackend, ComponentFrontend}
+	case constants.ComponentBackend:
+		return []string{constants.ComponentBackend}
+	case constants.ComponentFrontend:
+		return []string{constants.ComponentFrontend}
+	case constants.ComponentBoth:
+		return []string{constants.ComponentBackend, constants.ComponentFrontend}
 	default:
 		return []string{}
 	}
 }
 
-// getOrDetermineTag determines the tag to use, either from provided value or from git commit
-func getOrDetermineTag(logger *config.Logger, workDir, providedTag string, dryRun bool) (string, error) {
-	if providedTag != "" {
-		return providedTag, nil
-	}
-
-	gitClient := git.NewClient(logger, dryRun)
-	commit, err := gitClient.GetCurrentCommit(workDir)
-	if err != nil {
-		logger.Warning("Failed to get commit SHA, using '%s': %v", DefaultTag, err)
-		return DefaultTag, nil
-	}
-
-	logger.Info("Using commit SHA as tag: %s", commit)
-	return commit, nil
-}
-
 // getDeploymentName returns the standardized deployment name for a component
 func getDeploymentName(component string) string {
-	return DeploymentPrefix + component
+	return constants.DeploymentPrefix + component
 }
 
 // getTestContainerName returns the standardized test container name for a component
 func getTestContainerName(component string) string {
-	return TestContainerPrefix + component
+	return constants.TestContainerPrefix + component
 }
 
 // validateComponent checks if a component string is valid
 func validateComponent(component string) error {
-	if component != ComponentBackend && component != ComponentFrontend && component != ComponentBoth {
+	if component != constants.ComponentBackend && component != constants.ComponentFrontend && component != constants.ComponentBoth {
 		return fmt.Errorf("invalid component: %s (must be %s, %s, or %s)",
-			component, ComponentBackend, ComponentFrontend, ComponentBoth)
+			component, constants.ComponentBackend, constants.ComponentFrontend, constants.ComponentBoth)
 	}
 	return nil
 }
@@ -98,6 +82,24 @@ func formatError(cmdName string, err error) error {
 }
 
 // formatPrereqError formats prerequisite check failure errors with help hint
+// Uses formatError internally for consistency
 func formatPrereqError(cmdName string) error {
-	return fmt.Errorf("prerequisite check failed - see errors above\n\nRun 'm2deploy %s --help' for usage information", cmdName)
+	baseErr := fmt.Errorf("prerequisite check failed - see errors above")
+	return formatError(cmdName, baseErr)
+}
+
+// promptForConfirmation prompts the user for confirmation
+// Returns true if user confirms with "yes", false otherwise
+func promptForConfirmation(message string) bool {
+	fmt.Printf("\n⚠️  %s\n", message)
+	fmt.Printf("Type 'yes' to continue: ")
+
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false
+	}
+
+	response = strings.ToLower(strings.TrimSpace(response))
+	return response == "yes"
 }

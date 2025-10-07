@@ -8,19 +8,20 @@ import (
 )
 
 var (
-	repoURL         string
-	namespace       string
-	kubeconfig      string
-	dryRun          bool
-	verbose         bool
-	useSudo         bool
-	appName         string
-	k8sDir          string
-	localImageTag   string
-	checkOnly       bool
-	logFile         string
-	noLogFile       bool
-	useExternalBuild bool // Use external build script to avoid resource exhaustion
+	repoURL       string
+	namespace     string
+	kubeconfig    string
+	dryRun        bool
+	verbose       bool
+	useSudo       bool
+	force         bool
+	appName       string
+	imagePrefix   string
+	k8sDir        string
+	localImageTag string
+	checkOnly     bool
+	logFile       string
+	noLogFile     bool
 )
 
 var rootCmd = &cobra.Command{
@@ -59,6 +60,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Show what would be done without executing")
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
 	rootCmd.PersistentFlags().BoolVar(&checkOnly, "check", false, "Check prerequisites and exit without executing")
+	rootCmd.PersistentFlags().BoolVar(&force, "force", false, "Skip confirmation prompts for destructive operations")
 
 	// Global flags - Logging
 	rootCmd.PersistentFlags().StringVar(&logFile, "log-file", "/var/log/m2deploy/operations.log", "Path to log file (set empty to disable)")
@@ -69,11 +71,11 @@ func init() {
 
 	// Global flags - Application
 	rootCmd.PersistentFlags().StringVar(&appName, "app-name", "magnetiq", "Application name")
+	rootCmd.PersistentFlags().StringVar(&imagePrefix, "image-prefix", "magnetiq", "Container image prefix (e.g., magnetiq, myapp/prod)")
 
 	// Global flags - Docker/Image
 	rootCmd.PersistentFlags().BoolVar(&useSudo, "use-sudo", false, "Use sudo for Docker and k0s commands (auto-detected when running as root)")
 	rootCmd.PersistentFlags().StringVar(&localImageTag, "local-image-tag", "latest", "Tag for local images")
-	rootCmd.PersistentFlags().BoolVar(&useExternalBuild, "external-build", true, "Use external build script to prevent resource exhaustion (recommended)")
 
 	// Global flags - Kubernetes
 	rootCmd.PersistentFlags().StringVar(&namespace, "namespace", "magnetiq-v2", "Kubernetes namespace")
@@ -83,15 +85,16 @@ func init() {
 	// Bind flags to viper
 	viper.BindPFlag("repo-url", rootCmd.PersistentFlags().Lookup("repo-url"))
 	viper.BindPFlag("app-name", rootCmd.PersistentFlags().Lookup("app-name"))
+	viper.BindPFlag("image-prefix", rootCmd.PersistentFlags().Lookup("image-prefix"))
 	viper.BindPFlag("use-sudo", rootCmd.PersistentFlags().Lookup("use-sudo"))
 	viper.BindPFlag("local-image-tag", rootCmd.PersistentFlags().Lookup("local-image-tag"))
-	viper.BindPFlag("external-build", rootCmd.PersistentFlags().Lookup("external-build"))
 	viper.BindPFlag("namespace", rootCmd.PersistentFlags().Lookup("namespace"))
 	viper.BindPFlag("kubeconfig", rootCmd.PersistentFlags().Lookup("kubeconfig"))
 	viper.BindPFlag("k8s-dir", rootCmd.PersistentFlags().Lookup("k8s-dir"))
 	viper.BindPFlag("dry-run", rootCmd.PersistentFlags().Lookup("dry-run"))
 	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 	viper.BindPFlag("check", rootCmd.PersistentFlags().Lookup("check"))
+	viper.BindPFlag("force", rootCmd.PersistentFlags().Lookup("force"))
 	viper.BindPFlag("log-file", rootCmd.PersistentFlags().Lookup("log-file"))
 	viper.BindPFlag("no-log-file", rootCmd.PersistentFlags().Lookup("no-log-file"))
 }

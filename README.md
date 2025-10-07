@@ -35,6 +35,21 @@ See [Version 2.0 Changes](#version-20-changes) for migration details.
 
 ---
 
+## For Application Developers
+
+**Want to deploy your own application with m2deploy?**
+
+See [PAYLOAD_CONTRACT.md](PAYLOAD_CONTRACT.md) for complete documentation on:
+- Required directory structure (`backend/`, `frontend/`, `k8s/`, `scripts/`)
+- The `build.sh` contract and interface requirements
+- Dockerfile and Kubernetes manifest requirements
+- Validation and troubleshooting
+- Migration guide for existing applications
+
+m2deploy is **generic** and can deploy any web application that follows the payload contract.
+
+---
+
 ## Quick Start
 
 ### Prerequisites

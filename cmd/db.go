@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/wapsol/m2deploy/pkg/database"
 	"github.com/wapsol/m2deploy/pkg/prereq"
 )
 
@@ -101,12 +100,7 @@ func runDBBackup(cmd *cobra.Command, args []string) error {
 		return formatPrereqError("db")
 	}
 
-	dbClient := database.NewClient(
-		logger,
-		viper.GetBool("dry-run"),
-		viper.GetString("namespace"),
-		viper.GetString("kubeconfig"),
-	)
+	dbClient := newDBClient(logger)
 
 	if err := dbClient.Backup(dbBackupPath, dbBackupCompress); err != nil {
 		return err
@@ -135,12 +129,7 @@ func runDBRestore(cmd *cobra.Command, args []string) error {
 		os.Exit(0)
 	}
 
-	dbClient := database.NewClient(
-		logger,
-		viper.GetBool("dry-run"),
-		viper.GetString("namespace"),
-		viper.GetString("kubeconfig"),
-	)
+	dbClient := newDBClient(logger)
 
 	logger.Warning("This will overwrite the current database!")
 	logger.Info("Make sure to backup the current database first if needed")
@@ -163,12 +152,7 @@ func runDBMigrate(cmd *cobra.Command, args []string) error {
 		os.Exit(0)
 	}
 
-	dbClient := database.NewClient(
-		logger,
-		viper.GetBool("dry-run"),
-		viper.GetString("namespace"),
-		viper.GetString("kubeconfig"),
-	)
+	dbClient := newDBClient(logger)
 
 	return dbClient.Migrate()
 }
@@ -188,12 +172,7 @@ func runDBStatus(cmd *cobra.Command, args []string) error {
 		os.Exit(0)
 	}
 
-	dbClient := database.NewClient(
-		logger,
-		viper.GetBool("dry-run"),
-		viper.GetString("namespace"),
-		viper.GetString("kubeconfig"),
-	)
+	dbClient := newDBClient(logger)
 
 	return dbClient.Status()
 }

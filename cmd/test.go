@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/wapsol/m2deploy/pkg/constants"
 	"github.com/wapsol/m2deploy/pkg/prereq"
 )
 
@@ -29,7 +30,7 @@ Containers are run on their default ports and can be stopped with --skip-stop=fa
 func init() {
 	rootCmd.AddCommand(testCmd)
 
-	testCmd.Flags().StringVarP(&testComponent, "component", "c", ComponentBoth, "Component to test: backend, frontend, or both")
+	testCmd.Flags().StringVarP(&testComponent, "component", "c", constants.ComponentBoth, "Component to test: backend, frontend, or both")
 	testCmd.Flags().StringVarP(&testTag, "tag", "t", "", "Image tag (default: commit SHA)")
 	testCmd.Flags().BoolVar(&testSkipStop, "skip-stop", false, "Don't stop containers after test")
 	testCmd.MarkFlagRequired("component")
@@ -68,18 +69,18 @@ func runTest(cmd *cobra.Command, args []string) error {
 	// Test components
 	components := map[string]int{}
 	switch testComponent {
-	case ComponentBackend:
-		components[ComponentBackend] = BackendPort
-	case ComponentFrontend:
-		components[ComponentFrontend] = FrontendPort
-	case ComponentBoth:
-		components[ComponentBackend] = BackendPort
-		components[ComponentFrontend] = FrontendPort
+	case constants.ComponentBackend:
+		components[constants.ComponentBackend] = constants.BackendPort
+	case constants.ComponentFrontend:
+		components[constants.ComponentFrontend] = constants.FrontendPort
+	case constants.ComponentBoth:
+		components[constants.ComponentBackend] = constants.BackendPort
+		components[constants.ComponentFrontend] = constants.FrontendPort
 	}
 
 	for component, port := range components {
 		envVars := map[string]string{}
-		if component == ComponentBackend {
+		if component == constants.ComponentBackend {
 			envVars["DATABASE_URL"] = "sqlite:///app/data/magnetiq.db"
 		}
 
@@ -92,7 +93,7 @@ func runTest(cmd *cobra.Command, args []string) error {
 
 	// Wait a bit and show logs
 	logger.Info("Waiting for containers to start...")
-	time.Sleep(ContainerStartupDelay)
+	time.Sleep(constants.ContainerStartupDelay)
 
 	for component := range components {
 		containerName := getTestContainerName(component)
@@ -114,7 +115,7 @@ func runTest(cmd *cobra.Command, args []string) error {
 			dockerClient.Remove(containerName)
 		}
 	} else {
-		logger.Info("Containers left running (use 'docker stop %s*' to stop)", TestContainerPrefix)
+		logger.Info("Containers left running (use 'docker stop %s*' to stop)", constants.TestContainerPrefix)
 	}
 
 	logger.Success("Container tests completed")

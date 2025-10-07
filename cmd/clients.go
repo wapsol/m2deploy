@@ -24,26 +24,14 @@ type Clients struct {
 // NewClients creates all service clients from viper configuration
 func NewClients() *Clients {
 	logger := createLogger()
-	cfg := getConfig()
-
-	// Determine if sudo should be used (auto-detect or explicit)
-	useSudo := getUseSudoWithAutoDetect(logger)
-
-	dockerClient := docker.NewClient(logger, viper.GetBool("dry-run"), cfg, useSudo)
-
-	// Enable external builder if flag is set (default: true)
-	if viper.GetBool("external-build") {
-		dockerClient.EnableExternalBuilder()
-		logger.Debug("External builder mode enabled")
-	}
 
 	return &Clients{
 		Logger: logger,
-		Docker: dockerClient,
-		K8s:    k8s.NewClient(logger, viper.GetBool("dry-run"), viper.GetString("namespace"), viper.GetString("kubeconfig")),
-		DB:     database.NewClient(logger, viper.GetBool("dry-run"), viper.GetString("namespace"), viper.GetString("kubeconfig")),
-		Git:    git.NewClient(logger, viper.GetBool("dry-run")),
-		Config: cfg,
+		Docker: newDockerClient(logger),
+		K8s:    newK8sClient(logger),
+		DB:     newDBClient(logger),
+		Git:    newGitClient(logger),
+		Config: getConfig(),
 	}
 }
 
@@ -91,10 +79,11 @@ func getConfig() *config.Config {
 		DryRun:        viper.GetBool("dry-run"),
 		Verbose:       viper.GetBool("verbose"),
 		LocalImageTag: viper.GetString("local-image-tag"),
+		ImagePrefix:   viper.GetString("image-prefix"),
 	}
 }
 
-// Legacy individual client constructors (for gradual migration)
+// Individual client constructors
 // newDockerClient creates a new Docker client with configuration from viper
 func newDockerClient(logger *config.Logger) *docker.Client {
 	cfg := getConfig()
@@ -109,22 +98,22 @@ func newDockerClient(logger *config.Logger) *docker.Client {
 		useSudo,
 	)
 
-	// Enable external builder if flag is set (default: true)
-	if viper.GetBool("external-build") {
-		client.EnableExternalBuilder()
-		logger.Debug("External builder mode enabled")
-	}
+	// External builder is ALWAYS enabled (required to prevent resource exhaustion)
+	client.EnableExternalBuilder()
+	logger.Debug("External builder mode enabled")
 
 	return client
 }
 
 // newK8sClient creates a new Kubernetes client with configuration from viper
 func newK8sClient(logger *config.Logger) *k8s.Client {
+	useSudo := getUseSudoWithAutoDetect(logger)
 	return k8s.NewClient(
 		logger,
 		viper.GetBool("dry-run"),
 		viper.GetString("namespace"),
 		viper.GetString("kubeconfig"),
+		useSudo,
 	)
 }
 
@@ -135,16 +124,28 @@ func newGitClient(logger *config.Logger) *git.Client {
 
 // newDBClient creates a new database client with configuration from viper
 func newDBClient(logger *config.Logger) *database.Client {
+	useSudo := getUseSudoWithAutoDetect(logger)
 	return database.NewClient(
 		logger,
 		viper.GetBool("dry-run"),
 		viper.GetString("namespace"),
 		viper.GetString("kubeconfig"),
+		useSudo,
 	)
 }
 
+// Cached useSudo value to avoid recalculating
+var cachedUseSudo *bool
+var cachedUseSudoLogged bool
+
 // getUseSudoWithAutoDetect determines if sudo should be used, with auto-detection
+// Caches the result per command execution to avoid duplicate calculations
 func getUseSudoWithAutoDetect(logger *config.Logger) bool {
+	// Return cached value if already calculated
+	if cachedUseSudo != nil {
+		return *cachedUseSudo
+	}
+
 	// Check if --use-sudo flag was explicitly set by user
 	flagWasSet := viper.IsSet("use-sudo")
 	explicitValue := viper.GetBool("use-sudo")
@@ -152,10 +153,14 @@ func getUseSudoWithAutoDetect(logger *config.Logger) bool {
 	// Use helper function to determine final value
 	useSudo := config.ShouldUseSudo(explicitValue, flagWasSet)
 
-	// Log auto-detection for transparency
-	if !flagWasSet && useSudo {
+	// Cache the result
+	cachedUseSudo = &useSudo
+
+	// Log auto-detection for transparency (only once)
+	if !cachedUseSudoLogged && !flagWasSet && useSudo {
 		logger.Debug("Running as root - automatically enabling sudo for Docker/k0s subprocesses")
 		logger.Debug("(Use --use-sudo=false to disable)")
+		cachedUseSudoLogged = true
 	}
 
 	return useSudo

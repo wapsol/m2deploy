@@ -6,7 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/wapsol/m2deploy/pkg/k8s"
+	"github.com/wapsol/m2deploy/pkg/constants"
+	"github.com/wapsol/m2deploy/pkg/payload"
 	"github.com/wapsol/m2deploy/pkg/prereq"
 )
 
@@ -72,6 +73,15 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		return formatPrereqError("deploy")
 	}
 
+	// Validate payload structure (k8s manifests must exist)
+	if workDir != "" {
+		validator := payload.NewValidator(logger)
+		// Basic validation - ensure k8s directory exists
+		if err := validator.ValidateStructure(workDir); err != nil {
+			return fmt.Errorf("payload validation failed: %w", err)
+		}
+	}
+
 	// Import Docker images to k0s (unless skipped)
 	if !deploySkipImport {
 		logger.Info("Step 1: Importing images from Docker daemon to k0s containerd")
@@ -79,10 +89,10 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		dockerClient := newDockerClient(logger)
 		cfg := getConfig()
 
-		components := []string{ComponentBackend, ComponentFrontend}
+		components := []string{constants.ComponentBackend, constants.ComponentFrontend}
 		for _, component := range components {
 			imageName := cfg.GetLocalImageName(component)
-			tarballPath := fmt.Sprintf(TarballPathTemplate, component)
+			tarballPath := fmt.Sprintf(constants.TarballPathTemplate, component)
 
 			// Save image to tarball
 			logger.Info("Exporting %s from Docker daemon...", imageName)
@@ -126,12 +136,7 @@ func runDeploy(cmd *cobra.Command, args []string) error {
 		logger.Info("")
 	}
 
-	k8sClient := k8s.NewClient(
-		logger,
-		viper.GetBool("dry-run"),
-		viper.GetString("namespace"),
-		viper.GetString("kubeconfig"),
-	)
+	k8sClient := newK8sClient(logger)
 
 	logger.Info("Step 2: Deploying to Kubernetes cluster")
 

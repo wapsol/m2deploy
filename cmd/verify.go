@@ -47,11 +47,13 @@ func runVerify(cmd *cobra.Command, args []string) error {
 		return formatPrereqError("verify")
 	}
 
+	useSudo := getUseSudoWithAutoDetect(logger)
 	k8sClient := k8s.NewClient(
 		logger,
 		false, // Never dry-run verify
 		viper.GetString("namespace"),
 		viper.GetString("kubeconfig"),
+		useSudo,
 	)
 
 	logger.Info("Verifying Magnetiq2 deployment in namespace: %s", viper.GetString("namespace"))

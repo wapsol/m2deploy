@@ -3,7 +3,9 @@ package config
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -16,11 +18,58 @@ type Config struct {
 	DryRun        bool
 	Verbose       bool
 	LocalImageTag string
+	ImagePrefix   string // Container image prefix (e.g., "magnetiq", "myapp/prod")
 }
 
 // GetLocalImageName returns the local image name for a component
 func (c *Config) GetLocalImageName(component string) string {
-	return fmt.Sprintf("magnetiq/%s:%s", component, c.LocalImageTag)
+	return fmt.Sprintf("%s/%s:%s", c.ImagePrefix, component, c.LocalImageTag)
+}
+
+// ResolveImageTag resolves the image tag to use with clear precedence:
+// 1. Command flag (highest priority)
+// 2. Global flag
+// 3. Git commit SHA (if workDir is a git repo)
+// 4. "latest" (fallback)
+func (c *Config) ResolveImageTag(logger *Logger, commandTag, workDir string) string {
+	// 1. Command flag takes precedence
+	if commandTag != "" {
+		logger.Debug("Using command flag tag: %s", commandTag)
+		return commandTag
+	}
+
+	// 2. Global flag
+	if c.LocalImageTag != "" && c.LocalImageTag != "latest" {
+		logger.Debug("Using global flag tag: %s", c.LocalImageTag)
+		return c.LocalImageTag
+	}
+
+	// 3. Try to get git commit SHA (only if workDir is valid)
+	if workDir != "" {
+		if _, err := os.Stat(filepath.Join(workDir, ".git")); err == nil {
+			// workDir is a git repository, try to get commit SHA
+			commit, err := getGitCommitSHA(workDir)
+			if err == nil && commit != "" {
+				logger.Debug("Using git commit SHA as tag: %s", commit)
+				return commit
+			}
+			logger.Debug("Failed to get git commit SHA, using fallback")
+		}
+	}
+
+	// 4. Fallback to "latest"
+	logger.Debug("Using fallback tag: latest")
+	return "latest"
+}
+
+// getGitCommitSHA gets the current git commit SHA from a directory
+func getGitCommitSHA(workDir string) (string, error) {
+	cmd := exec.Command("git", "-C", workDir, "rev-parse", "--short", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
 }
 
 // IsRunningAsRoot checks if the current process is running as root (UID 0)

@@ -18,15 +18,17 @@ type Client struct {
 	DryRun     bool
 	Namespace  string
 	Kubeconfig string
+	UseSudo    bool
 }
 
 // NewClient creates a new database client
-func NewClient(logger *config.Logger, dryRun bool, namespace, kubeconfig string) *Client {
+func NewClient(logger *config.Logger, dryRun bool, namespace, kubeconfig string, useSudo bool) *Client {
 	return &Client{
 		Logger:     logger,
 		DryRun:     dryRun,
 		Namespace:  namespace,
 		Kubeconfig: kubeconfig,
+		UseSudo:    useSudo,
 	}
 }
 
@@ -38,7 +40,11 @@ func (c *Client) buildKubectlCmd(args ...string) *exec.Cmd {
 	} else {
 		allArgs = append([]string{"k0s", "kubectl"}, args...)
 	}
-	return exec.Command("sudo", allArgs...)
+
+	if c.UseSudo {
+		return exec.Command("sudo", allArgs...)
+	}
+	return exec.Command(allArgs[0], allArgs[1:]...)
 }
 
 // Backup backs up the SQLite database from a pod

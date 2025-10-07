@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/wapsol/m2deploy/pkg/constants"
 	"github.com/wapsol/m2deploy/pkg/prereq"
 )
 
@@ -31,7 +32,7 @@ Optionally restores the database from a backup.`,
 func init() {
 	rootCmd.AddCommand(rollbackCmd)
 
-	rollbackCmd.Flags().StringVarP(&rollbackComponent, "component", "c", ComponentBoth, "Component to rollback: backend, frontend, or both")
+	rollbackCmd.Flags().StringVarP(&rollbackComponent, "component", "c", constants.ComponentBoth, "Component to rollback: backend, frontend, or both")
 	rollbackCmd.Flags().BoolVar(&rollbackRestoreDB, "restore-db", false, "Restore database from backup")
 	rollbackCmd.Flags().StringVar(&rollbackBackupFile, "backup-file", "", "Database backup file to restore (required if --restore-db)")
 	rollbackCmd.Flags().BoolVar(&rollbackWait, "wait", true, "Wait for rollback to complete")

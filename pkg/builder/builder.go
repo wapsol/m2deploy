@@ -60,7 +60,7 @@ func (eb *ExternalBuilder) Build(workDir, component string) error {
 	// Determine script path (from payload's scripts directory)
 	scriptPath := filepath.Join(workDir, "scripts", "build.sh")
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		return fmt.Errorf("build script not found: %s\nPayload must contain scripts/build.sh", scriptPath)
+		return fmt.Errorf("build script not found: %s\nPayload must contain scripts/build.sh\nSee PAYLOAD_CONTRACT.md for requirements", scriptPath)
 	}
 
 	// Generate log file path
@@ -76,7 +76,7 @@ func (eb *ExternalBuilder) Build(workDir, component string) error {
 	args := []string{
 		"--component", component,
 		"--tag", tag,
-		"--registry", "magnetiq",
+		"--registry", eb.Config.ImagePrefix,
 		"--log-file", logFile,
 		"--target", "production",
 	}
@@ -147,7 +147,7 @@ func (eb *ExternalBuilder) BuildAsync(workDir, component string) (*BuildProcess,
 	// Determine script path (from payload's scripts directory)
 	scriptPath := filepath.Join(workDir, "scripts", "build.sh")
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("build script not found: %s\nPayload must contain scripts/build.sh", scriptPath)
+		return nil, fmt.Errorf("build script not found: %s\nPayload must contain scripts/build.sh\nSee PAYLOAD_CONTRACT.md for requirements", scriptPath)
 	}
 
 	// Generate log file path
@@ -161,7 +161,7 @@ func (eb *ExternalBuilder) BuildAsync(workDir, component string) (*BuildProcess,
 	args := []string{
 		"--component", component,
 		"--tag", tag,
-		"--registry", "magnetiq",
+		"--registry", eb.Config.ImagePrefix,
 		"--log-file", logFile,
 		"--target", "production",
 	}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/wapsol/m2deploy/pkg/payload"
 	"github.com/wapsol/m2deploy/pkg/prereq"
 )
 
@@ -83,6 +84,23 @@ func runBuild(cmd *cobra.Command, args []string) error {
 	// If --check flag is set, print results and exit
 	if viper.GetBool("check") {
 		checker.PrintResults()
+
+		// Also validate payload structure if workspace exists
+		if _, err := os.Stat(workDir); err == nil {
+			logger.Info("\n=== Payload Structure Validation ===")
+			validator := payload.NewValidator(logger)
+			validationErrors := validator.ValidatePayload(workDir)
+			if len(validationErrors) > 0 {
+				validator.PrintValidationErrors(validationErrors)
+				os.Exit(1)
+			} else {
+				logger.Success("Payload structure is valid")
+			}
+		} else {
+			logger.Warning("Workspace not found at %s - skipping payload validation", workDir)
+			logger.Info("Use --fresh to clone the repository first")
+		}
+
 		if checker.HasFailures() {
 			os.Exit(1)
 		}
@@ -99,6 +117,17 @@ func runBuild(cmd *cobra.Command, args []string) error {
 	gitClient := newGitClient(logger)
 
 	if buildFresh {
+		// Check if directory exists and has content
+		if stat, err := os.Stat(workDir); err == nil && stat.IsDir() {
+			// Directory exists - confirm before deleting
+			if !viper.GetBool("force") && !viper.GetBool("dry-run") {
+				msg := fmt.Sprintf("Directory %s will be DELETED and re-cloned.\nAll local changes will be lost.", workDir)
+				if !promptForConfirmation(msg) {
+					return fmt.Errorf("operation cancelled by user")
+				}
+			}
+		}
+
 		// Remove existing directory and clone fresh
 		logger.Info("Fresh clone requested - removing existing directory")
 		if !viper.GetBool("dry-run") {
@@ -124,13 +153,17 @@ func runBuild(cmd *cobra.Command, args []string) error {
 		logger.Info("(Use --fresh to clone fresh code from GitHub)")
 	}
 
+	// Validate payload structure
+	validator := payload.NewValidator(logger)
+	if err := validator.ValidateStructure(workDir); err != nil {
+		return fmt.Errorf("payload validation failed: %w\nUse --check to see detailed validation report", err)
+	}
+
 	dockerClient := newDockerClient(logger)
 	cfg := getConfig()
 
-	// Override tag if specified
-	if buildTag != "" {
-		cfg.LocalImageTag = buildTag
-	}
+	// Resolve image tag with clear precedence
+	cfg.LocalImageTag = cfg.ResolveImageTag(logger, buildTag, workDir)
 
 	// Validate component
 	if err := validateComponent(buildComponent); err != nil {

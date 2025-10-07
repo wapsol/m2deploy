@@ -7,6 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/wapsol/m2deploy/pkg/constants"
+	"github.com/wapsol/m2deploy/pkg/payload"
 	"github.com/wapsol/m2deploy/pkg/prereq"
 )
 
@@ -36,7 +38,7 @@ and updating deployments. Includes automatic database backup and migration.`,
 func init() {
 	rootCmd.AddCommand(updateCmd)
 
-	updateCmd.Flags().StringVarP(&updateComponent, "component", "c", ComponentBoth, "Component to update: backend, frontend, or both")
+	updateCmd.Flags().StringVarP(&updateComponent, "component", "c", constants.ComponentBoth, "Component to update: backend, frontend, or both")
 	updateCmd.Flags().StringVarP(&updateTag, "tag", "t", "", "Image tag (default: commit SHA)")
 	updateCmd.Flags().StringVarP(&updateBranch, "branch", "b", "", "Git branch to update from")
 	updateCmd.Flags().StringVar(&updateCommit, "commit", "", "Specific commit SHA to update to")
@@ -112,15 +114,19 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Override tag if specified
-	if updateTag != "" {
-		cfg.LocalImageTag = updateTag
+	// Resolve image tag with clear precedence
+	cfg.LocalImageTag = cfg.ResolveImageTag(logger, updateTag, workDir)
+
+	// Validate payload structure
+	validator := payload.NewValidator(logger)
+	if err := validator.ValidateStructure(workDir); err != nil {
+		return fmt.Errorf("payload validation failed: %w", err)
 	}
 
 	// 2. Backup database
-	if updateBackupDB && (updateComponent == ComponentBackend || updateComponent == ComponentBoth) {
+	if updateBackupDB && (updateComponent == constants.ComponentBackend || updateComponent == constants.ComponentBoth) {
 		logger.Info("Step 2/6: Backing up database")
-		if err := dbClient.Backup(DefaultBackupPath, true); err != nil {
+		if err := dbClient.Backup(constants.DefaultBackupPath, true); err != nil {
 			logger.Warning("Database backup failed: %v", err)
 			logger.Warning("Continuing with update...")
 		}
@@ -143,7 +149,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	logger.Info("Importing images to k0s...")
 	for _, component := range components {
 		// Save image to tarball
-		tarballPath := fmt.Sprintf(TarballPathTemplate, component)
+		tarballPath := fmt.Sprintf(constants.TarballPathTemplate, component)
 		if err := dockerClient.SaveImage(component, tarballPath); err != nil {
 			return err
 		}
@@ -160,7 +166,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	// 4. Run migrations (before updating backend)
-	if updateAutoMigrate && (updateComponent == ComponentBackend || updateComponent == ComponentBoth) {
+	if updateAutoMigrate && (updateComponent == constants.ComponentBackend || updateComponent == constants.ComponentBoth) {
 		logger.Info("Step 4/6: Running database migrations")
 		if err := dbClient.Migrate(); err != nil {
 			logger.Warning("Migrations failed: %v", err)

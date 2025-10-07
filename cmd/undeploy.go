@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/wapsol/m2deploy/pkg/k8s"
 )
 
 var (
@@ -37,12 +36,7 @@ func init() {
 func runUndeploy(cmd *cobra.Command, args []string) error {
 	logger := createLogger()
 	defer logger.Close()
-	k8sClient := k8s.NewClient(
-		logger,
-		viper.GetBool("dry-run"),
-		viper.GetString("namespace"),
-		viper.GetString("kubeconfig"),
-	)
+	k8sClient := newK8sClient(logger)
 
 	// Confirmation prompt (unless --force or --dry-run)
 	if !undeployForce && !viper.GetBool("dry-run") {

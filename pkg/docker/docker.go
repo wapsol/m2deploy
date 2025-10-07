@@ -76,65 +76,16 @@ func (c *Client) runCmdWithError(cmd *exec.Cmd) error {
 	return nil
 }
 
-// Build builds a Docker image with local tag
-// If external builder is enabled, delegates to build script; otherwise uses inline Docker build
+// Build builds a Docker image using the external builder
+// External builder is required to prevent resource exhaustion during large builds
 func (c *Client) Build(workDir, component string) error {
-	// Use external builder if enabled (recommended for production)
-	if c.ExternalBuilder != nil {
-		c.Logger.Debug("Using external builder for %s", component)
-		return c.ExternalBuilder.Build(workDir, component)
+	// External builder is REQUIRED (not optional)
+	if c.ExternalBuilder == nil {
+		return fmt.Errorf("external builder not initialized - this is a bug, please report it")
 	}
 
-	// Fall back to inline build (original implementation)
-	c.Logger.Debug("Using inline Docker build for %s", component)
-	return c.buildInline(workDir, component)
-}
-
-// buildInline performs an inline Docker build (original implementation)
-// This method captures output in memory and can cause resource exhaustion
-func (c *Client) buildInline(workDir, component string) error {
-	imageName := c.Config.GetLocalImageName(component)
-	contextPath := filepath.Join(workDir, component)
-
-	c.Logger.Info("Building %s image: %s", component, imageName)
-
-	if c.DryRun {
-		c.Logger.DryRun("Would build image %s from %s", imageName, contextPath)
-		return nil
-	}
-
-	args := []string{
-		"build",
-		"--network=host",
-		"-t", imageName,
-		"--target", "production",
-		contextPath,
-	}
-
-	cmd := c.buildDockerCmd(args...)
-
-	// Capture output to avoid cluttering console with Docker warnings
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	c.Logger.Debug("Executing: docker %s", strings.Join(args, " "))
-
-	if err := cmd.Run(); err != nil {
-		// On error, show the output
-		if stderr.Len() > 0 {
-			c.Logger.Error("Docker build failed: %s", stderr.String())
-		}
-		return fmt.Errorf("failed to build %s image: %w", component, err)
-	}
-
-	// Log warnings to file only (not console)
-	if stderr.Len() > 0 {
-		c.Logger.Debug("Docker build warnings: %s", strings.TrimSpace(stderr.String()))
-	}
-
-	c.Logger.Success("Built %s image: %s", component, imageName)
-	return nil
+	c.Logger.Debug("Using external builder for %s", component)
+	return c.ExternalBuilder.Build(workDir, component)
 }
 
 // SaveImage saves a Docker image to a tarball

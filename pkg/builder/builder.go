@@ -79,6 +79,7 @@ func (eb *ExternalBuilder) Build(workDir, component string) error {
 		"--registry", eb.Config.ImagePrefix,
 		"--log-file", logFile,
 		"--target", "production",
+		"--network", "host",
 	}
 
 	// Add sudo flag if needed
@@ -164,6 +165,7 @@ func (eb *ExternalBuilder) BuildAsync(workDir, component string) (*BuildProcess,
 		"--registry", eb.Config.ImagePrefix,
 		"--log-file", logFile,
 		"--target", "production",
+		"--network", "host",
 	}
 
 	// Add sudo flag if needed

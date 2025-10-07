@@ -66,6 +66,7 @@ Your `build.sh` must:
      --registry <registry-prefix> \
      --log-file <path-to-log-file> \
      --target <dockerfile-stage> \
+     --network <network-mode> \
      [--sudo]
    ```
 
@@ -98,6 +99,7 @@ TAG="latest"
 REGISTRY="myapp"
 LOG_FILE=""
 TARGET="production"
+NETWORK=""
 USE_SUDO=""
 
 # Parse arguments
@@ -108,6 +110,7 @@ while [[ $# -gt 0 ]]; do
         --registry) REGISTRY="$2"; shift 2 ;;
         --log-file) LOG_FILE="$2"; shift 2 ;;
         --target) TARGET="$2"; shift 2 ;;
+        --network) NETWORK="$2"; shift 2 ;;
         --sudo) USE_SUDO="sudo"; shift ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
@@ -128,11 +131,13 @@ build_component() {
     local image_name="${REGISTRY}/${component}:${TAG}"
 
     echo "Building ${component}..."
-    $USE_SUDO docker build \
-        --target "$TARGET" \
-        --tag "$image_name" \
-        --file "${PROJECT_ROOT}/${component}/Dockerfile" \
-        "${PROJECT_ROOT}/${component}"
+    BUILD_CMD="$USE_SUDO docker build"
+    [ -n "$NETWORK" ] && BUILD_CMD="$BUILD_CMD --network $NETWORK"
+    BUILD_CMD="$BUILD_CMD --target $TARGET --tag $image_name"
+    BUILD_CMD="$BUILD_CMD --file ${PROJECT_ROOT}/${component}/Dockerfile"
+    BUILD_CMD="$BUILD_CMD ${PROJECT_ROOT}/${component}"
+
+    eval $BUILD_CMD
 
     echo "Successfully built: ${image_name}"
 }
@@ -174,6 +179,7 @@ When you run `m2deploy build` or `m2deploy all`, m2deploy will:
   --registry magnetiq \
   --log-file /var/log/m2deploy/build-backend-latest.log \
   --target production \
+  --network host \
   --sudo  # (if needed)
 ```
 
@@ -302,6 +308,7 @@ Your payload doesn't need to hardcode values - m2deploy passes configuration thr
 | `--use-sudo` | `--sudo` | Whether to use sudo for Docker/k0s commands |
 | (auto-derived) | `--log-file` | Where to write build logs |
 | (hardcoded) | `--target production` | Dockerfile build stage |
+| (hardcoded) | `--network host` | Docker network mode for builds |
 
 ## Example: magnetiq2 Payload
 

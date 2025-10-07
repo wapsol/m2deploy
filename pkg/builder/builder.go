@@ -57,10 +57,10 @@ func (eb *ExternalBuilder) Build(workDir, component string) error {
 		return nil
 	}
 
-	// Determine script path
+	// Determine script path (from payload's scripts directory)
 	scriptPath := filepath.Join(workDir, "scripts", "build.sh")
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		return fmt.Errorf("build script not found: %s", scriptPath)
+		return fmt.Errorf("build script not found: %s\nPayload must contain scripts/build.sh", scriptPath)
 	}
 
 	// Generate log file path
@@ -72,21 +72,22 @@ func (eb *ExternalBuilder) Build(workDir, component string) error {
 	}
 	logFile := filepath.Join(logDir, fmt.Sprintf("build-%s-%s.log", component, tag))
 
-	// Prepare environment variables
-	env := os.Environ()
-	env = append(env, "BUILD_TARGET=production")
-	env = append(env, "BUILD_NETWORK=host")
-	env = append(env, "REGISTRY_PREFIX=magnetiq") // Match GetLocalImageName pattern
+	// Build command arguments using payload's script interface
+	args := []string{
+		"--component", component,
+		"--tag", tag,
+		"--registry", "magnetiq",
+		"--log-file", logFile,
+		"--target", "production",
+	}
 
+	// Add sudo flag if needed
 	if eb.UseSudo {
-		env = append(env, "USE_SUDO=true")
-	} else {
-		env = append(env, "USE_SUDO=false")
+		args = append(args, "--sudo")
 	}
 
 	// Build command
-	cmd := exec.Command(scriptPath, component, tag, logFile)
-	cmd.Env = env
+	cmd := exec.Command(scriptPath, args...)
 	cmd.Dir = workDir
 
 	// Stream output to logger (not to memory buffers)
@@ -143,10 +144,10 @@ func (eb *ExternalBuilder) BuildAsync(workDir, component string) (*BuildProcess,
 		}, nil
 	}
 
-	// Determine script path
+	// Determine script path (from payload's scripts directory)
 	scriptPath := filepath.Join(workDir, "scripts", "build.sh")
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("build script not found: %s", scriptPath)
+		return nil, fmt.Errorf("build script not found: %s\nPayload must contain scripts/build.sh", scriptPath)
 	}
 
 	// Generate log file path
@@ -156,21 +157,22 @@ func (eb *ExternalBuilder) BuildAsync(workDir, component string) (*BuildProcess,
 	}
 	logFile := filepath.Join(logDir, fmt.Sprintf("build-%s-%s.log", component, tag))
 
-	// Prepare environment
-	env := os.Environ()
-	env = append(env, "BUILD_TARGET=production")
-	env = append(env, "BUILD_NETWORK=host")
-	env = append(env, "REGISTRY_PREFIX=magnetiq") // Match GetLocalImageName pattern
+	// Build command arguments using payload's script interface
+	args := []string{
+		"--component", component,
+		"--tag", tag,
+		"--registry", "magnetiq",
+		"--log-file", logFile,
+		"--target", "production",
+	}
 
+	// Add sudo flag if needed
 	if eb.UseSudo {
-		env = append(env, "USE_SUDO=true")
-	} else {
-		env = append(env, "USE_SUDO=false")
+		args = append(args, "--sudo")
 	}
 
 	// Build command
-	cmd := exec.Command(scriptPath, component, tag, logFile)
-	cmd.Env = env
+	cmd := exec.Command(scriptPath, args...)
 	cmd.Dir = workDir
 
 	// Start the command

@@ -10,26 +10,26 @@ m2deploy is a production-ready deployment orchestration tool that handles the co
 
 ### Key Features
 
-- 🚀 **Complete Deployment Pipeline**: Clone, build, deploy, and verify in one command
-- 🔄 **Rolling Updates**: Update deployments with automatic database backups and migrations
-- 🗄️ **Database Management**: Backup, restore, and run migrations
-- ↩️ **Rollback Support**: Quickly rollback to previous versions
-- 🧪 **Local Testing**: Test containers locally before deployment
-- 🎯 **Selective Operations**: Target specific components (backend/frontend)
-- 📊 **Health Verification**: Check deployment health and status
-- 🔒 **SSL/TLS Automation**: Automatic certificate provisioning via cert-manager
-- 🐳 **External Builder**: Resource-isolated builds prevent memory exhaustion
-- 🧹 **Cleanup**: Remove old images and containers
-- ⚙️ **Flexible Configuration**: YAML config file or command-line flags
+- **Complete Deployment Pipeline**: Clone, build, deploy, and verify in one command
+- **Rolling Updates**: Update deployments with automatic database backups and migrations
+- **Database Management**: Backup, restore, and run migrations
+- **Rollback Support**: Quickly rollback to previous versions
+- **Local Testing**: Test containers locally before deployment
+- **Selective Operations**: Target specific components (backend/frontend)
+- **Health Verification**: Check deployment health and status
+- **SSL/TLS Automation**: Automatic certificate provisioning via cert-manager
+- **External Builder**: Resource-isolated builds prevent memory exhaustion
+- **Cleanup**: Remove old images and containers
+- **Flexible Configuration**: YAML config file or command-line flags
 
 ### What's New in v2.0
 
-✅ **Generic Application Support** - Deploy any web application, not just Magnetiq2
-✅ **External Builder Architecture** - Prevents resource exhaustion during builds
-✅ **SSL/TLS Automation** - Automatic Let's Encrypt certificates via cert-manager
-✅ **Registry Authentication** - Built-in Docker registry login
-✅ **Sudo Support** - Works with or without Docker group membership
-✅ **Dynamic Configuration** - YAML manifest manipulation for multi-app deployments
+- **Generic Application Support** - Deploy any web application, not just Magnetiq2
+- **External Builder Architecture** - Prevents resource exhaustion during builds
+- **SSL/TLS Automation** - Automatic Let's Encrypt certificates via cert-manager
+- **Registry Authentication** - Built-in Docker registry login
+- **Sudo Support** - Works with or without Docker group membership
+- **Dynamic Configuration** - YAML manifest manipulation for multi-app deployments
 
 See [Version 2.0 Changes](#version-20-changes) for migration details.
 
@@ -192,11 +192,11 @@ m2deploy v2.0 uses an **external builder** to prevent resource exhaustion during
 
 #### Benefits
 
-✅ **Resource Isolation** - Build process can't exhaust m2deploy's memory
-✅ **Stability** - No crashes during large builds
-✅ **Observability** - Logs persisted to `/var/log/m2deploy/build-<component>-<tag>.log`
-✅ **Performance** - No buffer copying overhead
-✅ **Flexibility** - Easy to customize build.sh without recompiling m2deploy
+- **Resource Isolation** - Build process can't exhaust m2deploy's memory
+- **Stability** - No crashes during large builds
+- **Observability** - Logs persisted to `/var/log/m2deploy/build-<component>-<tag>.log`
+- **Performance** - No buffer copying overhead
+- **Flexibility** - Easy to customize build.sh without recompiling m2deploy
 
 #### Usage
 
@@ -1108,6 +1108,6 @@ MIT License
 
 ---
 
-**Status:** ✅ Production Ready
+**Status:** Production Ready
 **Version:** 2.0.0
 **Last Updated:** 2025-10-07

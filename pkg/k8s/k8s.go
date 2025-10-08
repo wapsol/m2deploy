@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -464,4 +465,72 @@ func (c *Client) ScaleDeployment(deployment string, replicas int) error {
 
 	c.Logger.Success("Scaled %s to %d replicas", deployment, replicas)
 	return nil
+}
+
+// GetWorkerIPs returns the internal IPs of all worker nodes in the cluster
+func (c *Client) GetWorkerIPs() ([]string, error) {
+	c.Logger.Debug("Querying k8s API for worker node IPs")
+
+	// Get nodes in JSON format
+	cmd := c.buildKubectlCmd("get", "nodes", "-o", "json")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get nodes: %w: %s", err, string(output))
+	}
+
+	// Parse JSON response
+	var nodeList struct {
+		Items []struct {
+			Metadata struct {
+				Name   string            `json:"name"`
+				Labels map[string]string `json:"labels"`
+			} `json:"metadata"`
+			Status struct {
+				Addresses []struct {
+					Type    string `json:"type"`
+					Address string `json:"address"`
+				} `json:"addresses"`
+			} `json:"status"`
+		} `json:"items"`
+	}
+
+	if err := json.Unmarshal(output, &nodeList); err != nil {
+		return nil, fmt.Errorf("failed to parse node list JSON: %w", err)
+	}
+
+	var workerIPs []string
+
+	// Extract IPs from worker nodes (skip control-plane/master nodes)
+	for _, node := range nodeList.Items {
+		// Check if this is a control-plane/master node
+		isControlPlane := false
+		for label := range node.Metadata.Labels {
+			if strings.Contains(label, "control-plane") || strings.Contains(label, "master") {
+				isControlPlane = true
+				break
+			}
+		}
+
+		// Skip control-plane nodes
+		if isControlPlane {
+			c.Logger.Debug("Skipping control-plane node: %s", node.Metadata.Name)
+			continue
+		}
+
+		// Extract internal IP
+		for _, addr := range node.Status.Addresses {
+			if addr.Type == "InternalIP" {
+				workerIPs = append(workerIPs, addr.Address)
+				c.Logger.Debug("Found worker node %s with IP %s", node.Metadata.Name, addr.Address)
+				break
+			}
+		}
+	}
+
+	if len(workerIPs) == 0 {
+		return nil, fmt.Errorf("no worker nodes found in cluster")
+	}
+
+	c.Logger.Debug("Found %d worker nodes", len(workerIPs))
+	return workerIPs, nil
 }

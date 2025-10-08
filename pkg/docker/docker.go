@@ -379,3 +379,53 @@ func (c *Client) RemoveK0sImage(component string) error {
 	c.Logger.Success("Removed k0s image: %s", imageName)
 	return nil
 }
+
+// SaveAndDistribute saves image to tarball and distributes to all workers
+// Returns error if distribution fails to minimum required workers
+func (c *Client) SaveAndDistribute(component, imageName string, distributor interface{}) error {
+	// Cast distributor to ssh.Distributor interface
+	type ImageDistributor interface {
+		DistributeToAllWorkers(workers interface{}, tarballPath, component, imageName string) (interface{}, error)
+		GetWorkerNodes(k8sClient interface{}) (interface{}, error)
+	}
+
+	dist, ok := distributor.(ImageDistributor)
+	if !ok {
+		return fmt.Errorf("distributor does not implement required interface")
+	}
+
+	// Generate tarball path using constant
+	tarballPath := fmt.Sprintf(constants.TarballPathTemplate, component)
+
+	// Save image to tarball
+	c.Logger.Info("Saving %s image to tarball...", component)
+	if err := c.SaveImage(component, tarballPath); err != nil {
+		return fmt.Errorf("failed to save %s image: %w", component, err)
+	}
+
+	// Get worker nodes - we'll pass nil for k8sClient since it's handled elsewhere
+	workers, err := dist.GetWorkerNodes(nil)
+	if err != nil {
+		return fmt.Errorf("failed to get worker nodes: %w", err)
+	}
+
+	// Distribute to all workers
+	c.Logger.Info("Distributing %s to worker nodes...", component)
+	results, err := dist.DistributeToAllWorkers(workers, tarballPath, component, imageName)
+	if err != nil {
+		return fmt.Errorf("distribution failed: %w", err)
+	}
+
+	_ = results // Results are handled in DistributeToAllWorkers
+
+	// Clean up local tarball
+	if !c.DryRun {
+		if err := os.Remove(tarballPath); err != nil {
+			c.Logger.Warning("Failed to remove tarball %s: %v", tarballPath, err)
+		} else {
+			c.Logger.Debug("Removed local tarball: %s", tarballPath)
+		}
+	}
+
+	return nil
+}

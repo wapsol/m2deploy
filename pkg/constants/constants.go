@@ -33,4 +33,15 @@ const (
 	ManifestApplyDelay    = 500 * time.Millisecond
 	PodStabilizationDelay = 5 * time.Second
 	ContainerStartupDelay = 5 * time.Second
+
+	// SSH distribution defaults
+	DefaultSSHUser         = "ubuntu"
+	DefaultSSHPort         = 22
+	DefaultSSHTimeout      = 30 // seconds
+	DefaultWorkerTempDir   = "/tmp"
+	DefaultParallelWorkers = 3
+	DefaultRetryCount      = 3
+
+	// Containerd namespace for k8s
+	ContainerdNamespace = "k8s.io"
 )

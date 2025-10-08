@@ -35,6 +35,58 @@ See [Version 2.0 Changes](#version-20-changes) for migration details.
 
 ---
 
+## Table of Contents
+
+- [Overview](#overview)
+  - [Key Features](#key-features)
+  - [What's New in v2.0](#whats-new-in-v20)
+- [For Application Developers](#for-application-developers)
+- [Quick Start](#quick-start)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [5-Minute Deployment](#5-minute-deployment)
+  - [Update Existing Deployment](#update-existing-deployment)
+  - [Verify Deployment](#verify-deployment)
+- [Architecture](#architecture)
+  - [Workspace Separation](#workspace-separation)
+  - [External Builder Architecture](#external-builder-architecture)
+- [Commands Reference](#commands-reference)
+  - [Image Operations](#image-operations)
+  - [Deployment Operations](#deployment-operations)
+  - [Database Operations](#database-operations)
+  - [Utility Operations](#utility-operations)
+- [Global Options](#global-options)
+- [Configuration](#configuration)
+  - [Configuration File](#configuration-file)
+- [Common Workflows](#common-workflows)
+  - [Initial Deployment](#initial-deployment)
+  - [Update to New Version](#update-to-new-version)
+  - [Rollback After Failed Update](#rollback-after-failed-update)
+  - [Update Only Frontend](#update-only-frontend)
+  - [Database Operations](#database-operations)
+  - [Testing Before Deployment](#testing-before-deployment)
+  - [Deploy Different Application](#deploy-different-application)
+  - [SSL/TLS Certificate Provisioning](#ssltls-certificate-provisioning)
+- [Troubleshooting](#troubleshooting)
+- [Version 2.0 Changes](#version-20-changes)
+  - [Major Version Bump](#major-version-bump-v100--v200)
+  - [What's New](#whats-new)
+  - [Breaking Changes](#breaking-changes)
+  - [Migration Guide](#migration-guide)
+- [Development](#development)
+  - [Project Structure](#project-structure)
+  - [Building](#building)
+  - [Testing with Dry-Run](#testing-with-dry-run)
+  - [Running Tests](#running-tests)
+  - [Code Style](#code-style)
+- [Future Enhancements](#future-enhancements)
+  - [Planned Features](#planned-features)
+  - [Known Issues](#known-issues)
+- [Support](#support)
+- [License](#license)
+
+---
+
 ## For Application Developers
 
 **Want to deploy your own application with m2deploy?**
